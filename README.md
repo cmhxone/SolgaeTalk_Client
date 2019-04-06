@@ -1,2 +1,2 @@
-# Solgae_Client
+# SolgaeTalk_Client
 2019년 3학년 1학기 캡스톤디자인 솔개의선택 프로젝트 솔개톡 클라이언트 소스입니다
