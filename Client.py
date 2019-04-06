@@ -1,5 +1,6 @@
 import socket	# 소켓 모듈 임포트
 import threading	# 스레드 모듈 임포트
+import struct # 구조체 모듈 임포트
 
 class ClientSocket:
 	__host = str	# 호스트를 저장할 변수(URL or IP)
@@ -49,7 +50,21 @@ class ClientSocket:
 			recvThread.daemon = True
 			recvThread.start()
 			
+			# 초기 실행 시 접속 플래그를 담은 Hello 메시지를 전송한다
+			data = struct.pack("I512s", 1996, "Hello".encode())
+			self.__socket.send(data)
+			
+			# 메시지를 입력 받는 루프
 			while self.__running:
-				command = input()
+				try:
+					command = input()
+				except:
+					break
+				
+				# quit 을 입력시 클라이언트를 종료한다
 				if command == "/quit":
 					break
+				# 별도의 명령어가 아닌 경우 일반 메시지를 전송하는 플래그를 포함해 전송한다
+				else:
+					data = struct.pack("I512s", 5002, command.encode())
+					self.__socket.send(data)
