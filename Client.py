@@ -3,11 +3,11 @@ import threading	# 스레드 모듈 임포트
 import struct # 구조체 모듈 임포트
 
 class ClientSocket:
-	__host = str	# 호스트를 저장할 변수(URL or IP)
-	__port = int	# 포트를 저장할 변수
-	__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)	# 클라이언트 소켓
-	__running = False	# 클라이언트 실행 여부를 저장하는 변수
-	__nickname = str	# 클라이언트의 닉네임을 저장하는 변수
+	__host : str	# 호스트를 저장할 변수(URL or IP)
+	__port : int	# 포트를 저장할 변수
+	__socket : socket.socket	# 클라이언트 소켓
+	__running : bool	# 클라이언트 실행 여부를 저장하는 변수
+	__nickname : str	# 클라이언트의 닉네임을 저장하는 변수
 	
 	# 클래스 생성자
 	def __init__(self, host, port):
@@ -18,7 +18,7 @@ class ClientSocket:
 	def Connect(self):
 		# 소켓을 생성한다
 		try:
-			__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			print("소켓 생성 완료")
 		except socket.error as er:
 			print("소켓 생성 실패 : ", er)
