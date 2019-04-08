@@ -4,6 +4,7 @@ import struct # 구조체 모듈 임포트
 
 # Qt 라이브러리 내의 필요 모듈들을 임포트
 from PySide2.QtWidgets import QMessageBox, QPlainTextEdit, QLineEdit, QMessageBox
+from PySide2.QtGui import QTextCharFormat, QBrush, QColor
 
 class ClientSocket:
 	__host : str	# 호스트를 저장할 변수(URL or IP)
@@ -55,7 +56,15 @@ class ClientSocket:
 			
 			# 메시지 수신 플래그를 전달 받은 경우 메시지를 출력한다
 			if message[0] == 5002:
-				chatlog.appendHtml("<id style='color: #FF0000'> [" + message[1].decode().replace("\0", "") + "]</id> : <message style='color:#000000'>" + message[2].decode().replace("\0", "") + "</message>")
+                                # 텍스트 포맷을 지정해준다
+                                fmt = QTextCharFormat()
+                                fmt.setForeground(QBrush(QColor(255,0,0)))  # TODO: 서버에서 전송받은 컬러값으로 색 지정 구현
+                                chatlog.setCurrentCharFormat(fmt)
+                                # TODO: 입력전에 커서를 마지막 행으로 이동시키자
+                                chatlog.insertPlainText("[" + message[1].decode().replace("\0", "") + "]")
+                                fmt.setForeground(QBrush(QColor(0,0,0)))
+                                chatlog.setCurrentCharFormat(fmt)
+                                chatlog.insertPlainText(" : " + message[2].decode().replace("\0", "") + "\n")
 			# 접속 플래그를 전달 받은 경우 환영 메시지를 출력한다
 			elif message[0] == 1996:
 				chatlog.appendHtml("<center><id style='color: #FF0000;'>" + message[1].decode().replace("\0", "") + "</id> 님이 접속하였습니다</center>")
@@ -64,7 +73,7 @@ class ClientSocket:
 	def SendMessage(self, flag : int, msgEdit : QLineEdit):
 		try:
 			# 메시지를 패킹 후 서버에 전송한다
-			data = struct.pack("I32s512s", flag, "테스터".encode(), msgEdit[0].text().encode())
+			data = struct.pack("I32s512s", flag, "테스터".encode(), msgEdit[0].text().strip().encode())
 			msgEdit[0].clear()
 			msgEdit[0].setFocus()
 			self.__socket.send(data)

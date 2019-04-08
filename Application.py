@@ -67,4 +67,5 @@ class ClientApp:
 			
 	# 전송버튼 또는 입력창에서 엔터를 누른경우 실행되는 함수
 	def SendMessage(self):
-		self.__clientSocket.SendMessage(5002, [self.__msgEdit])
+		if not self.__msgEdit.text().strip() == "":
+			self.__clientSocket.SendMessage(5002, [self.__msgEdit])
