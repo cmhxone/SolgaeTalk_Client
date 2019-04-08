@@ -2,6 +2,9 @@ import socket	# 소켓 모듈 임포트
 import threading	# 스레드 모듈 임포트
 import struct # 구조체 모듈 임포트
 
+# Qt 라이브러리 내의 필요 모듈들을 임포트
+from PySide2.QtWidgets import QMessageBox, QPlainTextEdit, QLineEdit, QMessageBox
+
 class ClientSocket:
 	__host : str	# 호스트를 저장할 변수(URL or IP)
 	__port : int	# 포트를 저장할 변수
@@ -22,7 +25,12 @@ class ClientSocket:
 			print("소켓 생성 완료")
 		except socket.error as er:
 			print("소켓 생성 실패 : ", er)
-			exit(-1)
+			mb = QMessageBox()
+			mb.setText("소켓 생성에 실패하였습니다")
+			mb.setIcon(QMessageBox.Warning)
+			mb.setWindowTitle("솔개톡")
+			mb.exec_()
+			return False
 			
 		# 소켓에 접속한다
 		try:
@@ -31,52 +39,34 @@ class ClientSocket:
 			return True
 		except socket.error as er:
 			print("서버 접속 실패 : ", er)
-			exit(-1)
+			mb = QMessageBox()
+			mb.setText("서버 접속에 실패하였습니다")
+			mb.setIcon(QMessageBox.Warning)
+			mb.setWindowTitle("솔개톡")
+			mb.exec_()
+			return False
 	
 	# 소켓 서버에서 정보를 받아오는 함수
-	def ProcessMessage(self):
-		while self.__running:	# 실행상태라면 계속 반복한다
+	def ProcessMessage(self, chatlog : QPlainTextEdit):
+		while True:	# 실행상태라면 계속 반복한다
 			# 소켓에서 정보를 읽어온다
-			#try:
 			data = self.__socket.recv(1024)	# 사이즈만큼의 데이터를 받아온 뒤 data 변수에 전달
 			message = struct.unpack("I32s512s", data)	# 데이터를 언 패킹한다
 			
 			# 메시지 수신 플래그를 전달 받은 경우 메시지를 출력한다
 			if message[0] == 5002:
-				print("[", message[1].decode().replace("\x00", ""),  "] ", message[2].decode().replace("\x00", ""))
-				
-			#except:
-			#	pass
-	
-	# 클라이언트의 닉네임을 받는 함수
-	def SetNickname(self):
-		self.__nickname = input("닉네임을 입력해주세요 ")
-	
-	# 클라이언트를 실행하는 함수
-	def Start(self):
-		if self.Connect():
-			self.SetNickname()
-			
-			self.__running = True
-			procThread = threading.Thread(target=self.ProcessMessage, args=())
-			procThread.daemon = True
-			procThread.start()
-			
-			# 초기 실행 시 접속 플래그를 담은 Hello 메시지를 전송한다
-			data = struct.pack("I32s512s", 1996, self.__nickname.encode(), "Hello".encode())
+				chatlog.appendHtml("<id style='color: #FF0000'> [" + message[1].decode().replace("\0", "") + "]</id> : <message style='color:#000000'>" + message[2].decode().replace("\0", "") + "</message>")
+			# 접속 플래그를 전달 받은 경우 환영 메시지를 출력한다
+			elif message[0] == 1996:
+				chatlog.appendHtml("<center><id style='color: #FF0000;'>" + message[1].decode().replace("\0", "") + "</id> 님이 접속하였습니다</center>")
+		
+	# 소켓 서버에 메시지를 전달하는 함수
+	def SendMessage(self, flag : int, msgEdit : QLineEdit):
+		try:
+			# 메시지를 패킹 후 서버에 전송한다
+			data = struct.pack("I32s512s", flag, "테스터".encode(), msgEdit[0].text().encode())
+			msgEdit[0].clear()
+			msgEdit[0].setFocus()
 			self.__socket.send(data)
-			
-			# 메시지를 입력 받는 루프
-			while self.__running:
-				try:
-					command = input()
-				except:
-					break
-				
-				# quit 을 입력시 클라이언트를 종료한다
-				if command == "/quit":
-					break
-				# 별도의 명령어가 아닌 경우 일반 메시지를 전송하는 플래그를 포함해 전송한다
-				else:
-					data = struct.pack("I32s512s", 5002, self.__nickname.encode(), command.encode())
-					self.__socket.send(data)
+		except struct.error as er:
+			print(er)
