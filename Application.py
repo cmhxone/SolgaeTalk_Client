@@ -5,6 +5,7 @@ import Client	# 소켓 클라이언트 모듈 임포트
 
 # Qt 라이브러리 내의 필요 모듈들을 임포트한다
 from PySide2.QtWidgets import QApplication, QFrame, QPlainTextEdit, QLineEdit, QPushButton, QMessageBox
+from PySide2.QtGui import QTextCursor, QTextDocument, QAbstractTextDocumentLayout
 
 # 클라이언트 GUI 어플리케이션 클래스
 class ClientApp:
@@ -15,6 +16,7 @@ class ClientApp:
 	__btnSend : QPushButton	# 전송 버튼
 	__clientSocket : Client.ClientSocket	# 클라이언트 소켓 클래스 객체
 	__lock : threading.Lock
+	__cursor : QTextCursor	# 채팅로그의 텍스트 커서
 	
 	# 생성자 (인자값으로 호스트명과 포트를 전달받는다)
 	def __init__(self, host : str, port : int):
@@ -27,6 +29,7 @@ class ClientApp:
 		self.__chatlog = QPlainTextEdit()	# 채팅로그를 생성한다
 		self.__msgEdit = QLineEdit()	# 메시지 입력창을 생성한다
 		self.__btnSend = QPushButton("전송")	# 메시지 전송 버튼을 생성한다
+		self.__cursor = QTextCursor(self.__chatlog.document())	# 채팅로그 커서를 생성한다
 		
 		# 프레임과 자식객체의 연동
 		self.__chatlog.setParent(self.__frame)
@@ -60,7 +63,7 @@ class ClientApp:
 			exit(-1)
 		# 접속에 성공한 경우 메시지 처리 함수를 별도의 스레드로 처리해준 뒤  접속 플래그를 담은 메시지를 전송
 		else:
-			processThread = threading.Thread(target=self.__clientSocket.ProcessMessage, args=([self.__chatlog]))
+			processThread = threading.Thread(target=self.__clientSocket.ProcessMessage, args=([self.__cursor]))
 			processThread.daemon = True
 			processThread.start()
 			self.__clientSocket.SendMessage(1996, [self.__msgEdit])

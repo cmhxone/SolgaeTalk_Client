@@ -4,7 +4,7 @@ import struct # 구조체 모듈 임포트
 
 # Qt 라이브러리 내의 필요 모듈들을 임포트
 from PySide2.QtWidgets import QMessageBox, QPlainTextEdit, QLineEdit, QMessageBox
-from PySide2.QtGui import QTextCharFormat, QBrush, QColor
+from PySide2.QtGui import QTextCharFormat, QBrush, QColor, QTextCursor
 
 class ClientSocket:
 	__host : str	# 호스트를 저장할 변수(URL or IP)
@@ -12,6 +12,7 @@ class ClientSocket:
 	__socket : socket.socket	# 클라이언트 소켓
 	__running : bool	# 클라이언트 실행 여부를 저장하는 변수
 	__nickname : str	# 클라이언트의 닉네임을 저장하는 변수
+	__lock : threading.Lock	# 스레드 락
 	
 	# 클래스 생성자
 	def __init__(self, host, port):
@@ -48,7 +49,7 @@ class ClientSocket:
 			return False
 	
 	# 소켓 서버에서 정보를 받아오는 함수
-	def ProcessMessage(self, chatlog : QPlainTextEdit):
+	def ProcessMessage(self, cursor : QTextCursor):
 		while True:	# 실행상태라면 계속 반복한다
 			# 소켓에서 정보를 읽어온다
 			data = self.__socket.recv(1024)	# 사이즈만큼의 데이터를 받아온 뒤 data 변수에 전달
@@ -56,18 +57,22 @@ class ClientSocket:
 			
 			# 메시지 수신 플래그를 전달 받은 경우 메시지를 출력한다
 			if message[0] == 5002:
-                                # 텍스트 포맷을 지정해준다
-                                fmt = QTextCharFormat()
-                                fmt.setForeground(QBrush(QColor(255,0,0)))  # TODO: 서버에서 전송받은 컬러값으로 색 지정 구현
-                                chatlog.setCurrentCharFormat(fmt)
-                                # TODO: 입력전에 커서를 마지막 행으로 이동시키자
-                                chatlog.insertPlainText("[" + message[1].decode().replace("\0", "") + "]")
-                                fmt.setForeground(QBrush(QColor(0,0,0)))
-                                chatlog.setCurrentCharFormat(fmt)
-                                chatlog.insertPlainText(" : " + message[2].decode().replace("\0", "") + "\n")
+				# 텍스트 포맷을 지정해준다
+				cursor.movePosition(cursor.End)
+				cursor.beginEditBlock()
+				# TODO: 서버에서 아이디, 컬러값을 가져온 뒤 출력하게 한다
+				cursor.insertHtml("<id style='color:#FF0000'>[" + message[1].decode().strip().replace("\0", "") + "]</id> ")
+				cursor.movePosition(cursor.End)
+				# HTML 태그를 이용해 프로그램 오류 유도를 방지하기 위해 메시지는 일반 텍스트로 출력한다
+				cursor.insertText(message[2].decode().strip().replace("\0", "") + "\n")
+				cursor.endEditBlock()
+				
 			# 접속 플래그를 전달 받은 경우 환영 메시지를 출력한다
 			elif message[0] == 1996:
-				chatlog.appendHtml("<center><id style='color: #FF0000;'>" + message[1].decode().replace("\0", "") + "</id> 님이 접속하였습니다</center>")
+				cursor.movePosition(cursor.End)
+				cursor.beginEditBlock()
+				cursor.insertHtml("<strong><message style='color:#707070'>[솔개톡] <id style='color:#FF0000'>" + message[1].decode().strip().replace("\0", "") + "</id>" + " 님이 솔개톡에 입장하셨습니다</message></strong><br>")
+				cursor.endEditBlock()
 		
 	# 소켓 서버에 메시지를 전달하는 함수
 	def SendMessage(self, flag : int, msgEdit : QLineEdit):
