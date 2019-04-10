@@ -4,8 +4,59 @@ import struct	# 구조체 모듈 임포트
 import Client	# 소켓 클라이언트 모듈 임포트
 
 # Qt 라이브러리 내의 필요 모듈들을 임포트한다
-from PySide2.QtWidgets import QApplication, QFrame, QPlainTextEdit, QLineEdit, QPushButton, QMessageBox
-from PySide2.QtGui import QTextCursor, QTextDocument, QAbstractTextDocumentLayout
+from PySide2.QtWidgets import QApplication, QFrame, QPlainTextEdit, QLineEdit, QPushButton, QMessageBox, QDialog, QVBoxLayout
+from PySide2.QtGui import QTextCursor
+
+# 클라이언트 로그인 GUI 폼
+class LoginDialog(QDialog):
+	__txtID : QLineEdit	# 아이디 입력 창
+	__txtPW : QLineEdit	# 비밀번호 입력 창
+	__btnLogin : QPushButton	# 로그인 버튼
+	__layout : QVBoxLayout	# 다이얼로그 레이아웃
+	__host : str	# 호스트 주소
+	__port : int	# 포트번호
+	__app : QApplication	# 어플리케이션
+
+	# 다이얼로그 생성자
+	def __init__(self, host : str, port : int, parent=None):
+		self.__host = host
+		self.__port = port
+	
+		self.__app = QApplication(sys.argv)
+		# 다이얼로그 초기화
+		super(LoginDialog, self).__init__(parent)
+		self.setWindowTitle("솔개톡 로그인")
+		self.setFixedSize(200, 100)
+		
+		# 다이얼로그에 객체 생성
+		self.__layout = QVBoxLayout()
+		self.__txtID = QLineEdit()
+		self.__txtPW = QLineEdit()
+		self.__btnLogin = QPushButton("로그인")
+		self.__btnLogin.clicked.connect(lambda: self.ProcessLogin())
+		
+		# 다이얼로그 객체의 속성을 지정한다
+		self.__txtID.setPlaceholderText("아이디")
+		self.__txtPW.setPlaceholderText("비밀번호")
+		self.__txtPW.setEchoMode(QLineEdit.Password)
+		
+		# 다이얼로그 메인프레임에 에딧 연결
+		self.__layout.addWidget(self.__txtID)
+		self.__layout.addWidget(self.__txtPW)
+		self.__layout.addWidget(self.__btnLogin)
+		self.setLayout(self.__layout)
+		
+		# 디이얼로그를 보여준다
+		self.show()
+		self.__app.exec_()
+
+	# 로그인 버튼을 누른 경우 호출되는 함수
+	def ProcessLogin(self):
+		#TODO: MariaDB와 연동하여 ID/PW 정보를 가져와 로그인을 시도한다
+		self.__txtID.setReadOnly(True)
+		self.__txtPW.setReadOnly(True)
+		clientApp = ClientApp(self.__host, self.__port)
+		self.hide()
 
 # 클라이언트 GUI 어플리케이션 클래스
 class ClientApp:
@@ -22,7 +73,6 @@ class ClientApp:
 	def __init__(self, host : str, port : int):
 		self.__lock = threading.Lock()
 	
-		self.__app = QApplication(sys.argv)	# 어플리케이션을 생성한다
 		self.__frame = QFrame()	# 메인 프레임을 생성한다
 		
 		# 프레임 내의 자식객체 생성
@@ -53,7 +103,6 @@ class ClientApp:
 		
 		self.__frame.setFixedSize(500, 480)	# 프레임의 크기를 지정한다
 		self.__frame.show()	# 메인 프레임을 보여준다
-		self.__app.exec_()	# 초기화가 끝나면 어플리케이션을 실행한다
 	
 	# 소켓을 초기화, 접속 하는 함수
 	def InitSocket(self, host : str, port : int):
