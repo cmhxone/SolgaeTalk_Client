@@ -1,6 +1,7 @@
 import sys	# 시스템 모듈을 임포트
 import threading	# 스레드 모듈 임포트
 import struct	# 구조체 모듈 임포트
+import pymysql
 import Client	# 소켓 클라이언트 모듈 임포트
 
 # Qt 라이브러리 내의 필요 모듈들을 임포트한다
@@ -12,6 +13,7 @@ class LoginDialog(QDialog):
 	__txtID : QLineEdit	# 아이디 입력 창
 	__txtPW : QLineEdit	# 비밀번호 입력 창
 	__btnLogin : QPushButton	# 로그인 버튼
+	__btnRegist : QPushButton	# 회원가입 버튼
 	__layout : QVBoxLayout	# 다이얼로그 레이아웃
 	__host : str	# 호스트 주소
 	__port : int	# 포트번호
@@ -26,13 +28,14 @@ class LoginDialog(QDialog):
 		# 다이얼로그 초기화
 		super(LoginDialog, self).__init__(parent)
 		self.setWindowTitle("솔개톡 로그인")
-		self.setFixedSize(200, 100)
+		self.setFixedSize(200, 130)
 		
 		# 다이얼로그에 객체 생성
 		self.__layout = QVBoxLayout()
 		self.__txtID = QLineEdit()
 		self.__txtPW = QLineEdit()
 		self.__btnLogin = QPushButton("로그인")
+		self.__btnRegist = QPushButton("회원가입")
 		self.__btnLogin.clicked.connect(lambda: self.ProcessLogin())
 		
 		# 다이얼로그 객체의 속성을 지정한다
@@ -44,6 +47,7 @@ class LoginDialog(QDialog):
 		self.__layout.addWidget(self.__txtID)
 		self.__layout.addWidget(self.__txtPW)
 		self.__layout.addWidget(self.__btnLogin)
+		self.__layout.addWidget(self.__btnRegist)
 		self.setLayout(self.__layout)
 		
 		# 디이얼로그를 보여준다
@@ -55,8 +59,25 @@ class LoginDialog(QDialog):
 		#TODO: MariaDB와 연동하여 ID/PW 정보를 가져와 로그인을 시도한다
 		self.__txtID.setReadOnly(True)
 		self.__txtPW.setReadOnly(True)
-		clientApp = ClientApp(self.__host, self.__port)
-		self.hide()
+		
+		# MySQL(MariaDB) 서버에 접속한다
+		db = pymysql.connect(host=self.__host, port=3306, user="Solgae", passwd="gntech2152", db="SolgaeTalk", charset="utf8", autocommit=True)
+		cursor = db.cursor()
+		cursor.execute("SELECT COUNT(*) FROM Accounts WHERE userID='" + self.__txtID.text().strip() + "' AND userPW='" + self.__txtPW.text().strip() + "'")
+		result = cursor.fetchone()
+		
+		if result[0] == 1:
+			clientApp = ClientApp(self.__host, self.__port)
+			self.hide()
+		else :
+			mb = QMessageBox()
+			mb.setText("일치하는 계정이 없습니다")
+			mb.setIcon(QMessageBox.Warning)
+			mb.setWindowTitle("솔개톡 로그인")
+			mb.exec_()
+			self.__txtID.setReadOnly(False)
+			self.__txtPW.setReadOnly(False)
+		
 
 # 클라이언트 GUI 어플리케이션 클래스
 class ClientApp:
