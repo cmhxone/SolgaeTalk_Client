@@ -60,7 +60,6 @@ class LoginDialog(QDialog):
 
 # 클라이언트 GUI 어플리케이션 클래스
 class ClientApp:
-	__app : QApplication	# 어플리케이션
 	__frame : QFrame	# 어플리케이션의 메인 프레임
 	__chatlog : QPlainTextEdit	# 채팅로그
 	__msgEdit : QLineEdit	# 사용자의 메시지를 입력받는 곳
