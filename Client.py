@@ -75,10 +75,10 @@ class ClientSocket:
 				cursor.endEditBlock()
 		
 	# 소켓 서버에 메시지를 전달하는 함수
-	def SendMessage(self, flag : int, msgEdit : QLineEdit):
+	def SendMessage(self, flag : int, msgEdit : QLineEdit, nickname : str):
 		try:
 			# 메시지를 패킹 후 서버에 전송한다
-			data = struct.pack("I32s512s", flag, "테스터".encode(), msgEdit[0].text().strip().encode())
+			data = struct.pack("I32s512s", flag, nickname.encode(), msgEdit[0].text().strip().encode())
 			msgEdit[0].clear()
 			msgEdit[0].setFocus()
 			self.__socket.send(data)

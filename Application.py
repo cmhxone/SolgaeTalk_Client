@@ -1,7 +1,8 @@
 import sys	# 시스템 모듈을 임포트
 import threading	# 스레드 모듈 임포트
 import struct	# 구조체 모듈 임포트
-import pymysql
+import pymysql	# MySQL 모듈 임포트
+import hashlib	# 해싱 모듈 임포트
 import Client	# 소켓 클라이언트 모듈 임포트
 
 # Qt 라이브러리 내의 필요 모듈들을 임포트한다
@@ -37,6 +38,7 @@ class LoginDialog(QDialog):
 		self.__btnLogin = QPushButton("로그인")
 		self.__btnRegist = QPushButton("회원가입")
 		self.__btnLogin.clicked.connect(lambda: self.ProcessLogin())
+		self.__btnRegist.clicked.connect(lambda: self.ShowRegister())
 		
 		# 다이얼로그 객체의 속성을 지정한다
 		self.__txtID.setPlaceholderText("아이디")
@@ -56,18 +58,29 @@ class LoginDialog(QDialog):
 
 	# 로그인 버튼을 누른 경우 호출되는 함수
 	def ProcessLogin(self):
-		#TODO: MariaDB와 연동하여 ID/PW 정보를 가져와 로그인을 시도한다
+		#MariaDB와 연동하여 ID/PW 정보를 가져와 로그인을 시도한다
 		self.__txtID.setReadOnly(True)
 		self.__txtPW.setReadOnly(True)
 		
 		# MySQL(MariaDB) 서버에 접속한다
 		db = pymysql.connect(host=self.__host, port=3306, user="Solgae", passwd="gntech2152", db="SolgaeTalk", charset="utf8", autocommit=True)
 		cursor = db.cursor()
-		cursor.execute("SELECT COUNT(*) FROM Accounts WHERE userID='" + self.__txtID.text().strip() + "' AND userPW='" + self.__txtPW.text().strip() + "'")
+		
+		# 입력받은 비밀번호를 암호화한다
+		hashSHA = hashlib.sha256()
+		hashSHA.update(self.__txtPW.text().strip().encode())
+		hexSHA256 = hashSHA.hexdigest()
+		
+		# 입력받은 아이디, 암호화한 비밀번호와 동일한 레코드를 검색한다
+		cursor.execute("SELECT COUNT(*) FROM Accounts WHERE userID='" + self.__txtID.text().strip() + "' AND userPW='" + hexSHA256 + "'")
 		result = cursor.fetchone()
 		
+		# 로그인 정보가 존재하는 경우 어플리케이션을 실행한다
 		if result[0] == 1:
-			clientApp = ClientApp(self.__host, self.__port)
+			cursor.execute("SELECT nickname FROM Accounts WHERE userID='" + self.__txtID.text().strip() + "' AND userPW='" + hexSHA256 + "'")
+			result = cursor.fetchone()
+
+			clientApp = ClientApp(self.__host, self.__port, result[0])
 			self.hide()
 		else :
 			mb = QMessageBox()
@@ -77,7 +90,126 @@ class LoginDialog(QDialog):
 			mb.exec_()
 			self.__txtID.setReadOnly(False)
 			self.__txtPW.setReadOnly(False)
+	
+	# 회원가입 버튼을 누른 경우 호출되는 함수
+	def ShowRegister(self):
+		# 회원가입 다이얼로그를 실행중엔 버튼 및 텍스트 에디터 사용을 막는다
+		self.__txtID.setReadOnly(True)
+		self.__txtPW.setReadOnly(True)
+		self.__btnLogin.setEnabled(False)
+		self.__btnRegist.setEnabled(False)
 		
+		# 회원가입 다이얼로그 생성
+		registDialog = RegistDialog(self, self.__host)
+		registDialog.exec_()
+		
+		# 다이얼로그가 닫힌 경우 버튼 및 텍스트 사용을 재개한다
+		self.__txtID.setReadOnly(False)
+		self.__txtPW.setReadOnly(False)
+		self.__btnLogin.setEnabled(True)
+		self.__btnRegist.setEnabled(True)
+		
+# 회원가입 GUI 어플리케이션 클래스
+class RegistDialog(QDialog):
+	__host : str	# MariaDB 호스트
+	__layout : QVBoxLayout	# 다이얼로그 레이아웃
+	__txtID : QLineEdit	# 아이디 입력 객체
+	__txtPW : QLineEdit	# 비밀번호 입력 객체
+	__txtPW_Confirm : QLineEdit	# 비밀번호 입력 확인 객체
+	__txtNickname : QLineEdit	# 닉네임 입력 객체
+	__btnRegist : QLineEdit	# 회원가입 시도 버튼 객체
+	
+	# 생성자
+	def __init__(self, parent, host):
+		# MariaDB 호스트 주소
+		self.__host = host
+
+		# 다이얼로그 초기화
+		super(RegistDialog, self).__init__(parent)
+		self.setWindowTitle("솔개톡 회원가입")
+		self.setFixedSize(200, 150)
+		
+		# 다이얼로그 내의 객체 초기화
+		self.__layout = QVBoxLayout()
+		self.__txtID = QLineEdit()
+		self.__txtPW = QLineEdit()
+		self.__txtPW_Confirm = QLineEdit()
+		self.__txtNickname = QLineEdit()
+		self.__btnRegist = QPushButton("회원가입")
+		
+		# 레이아웃에 객체 지정
+		self.__layout.addWidget(self.__txtID)
+		self.__layout.addWidget(self.__txtPW)
+		self.__layout.addWidget(self.__txtPW_Confirm)
+		self.__layout.addWidget(self.__txtNickname)
+		self.__layout.addWidget(self.__btnRegist)
+		
+		# 객체 속성 지정
+		self.__txtID.setPlaceholderText("아이디")
+		self.__txtPW.setPlaceholderText("비밀번호")
+		self.__txtPW_Confirm.setPlaceholderText("비밀번호 확인")
+		self.__txtNickname.setPlaceholderText("닉네임")
+		self.__txtPW.setEchoMode(QLineEdit.Password)
+		self.__txtPW_Confirm.setEchoMode(QLineEdit.Password)
+		self.__btnRegist.clicked.connect(lambda: self.ProcessRegist())
+		
+		# 다이얼로그를 출력한다
+		self.setLayout(self.__layout)
+		self.show()
+		
+	# 회원가입 버튼을 누른 경우 호출되는 함수
+	def ProcessRegist(self):
+		# 아무것도 입력되지 않은 경우 오류메시지 출력
+		if self.__txtID.text().strip() == "" or self.__txtPW.text().strip() == "" or self.__txtPW_Confirm.text().strip() == "" or self.__txtNickname.text().strip() == "":
+			mb = QMessageBox()
+			mb.setText("모든 항목을 입력해주세요")
+			mb.setIcon(QMessageBox.Warning)
+			mb.setWindowTitle("솔개톡 회원가입")
+			mb.exec_()
+		# 입력받은 비밀번호와 비밀번호 값이 일치하지 않는 경우 오류출력
+		elif self.__txtPW.text().strip() != self.__txtPW_Confirm.text().strip():
+			mb = QMessageBox()
+			mb.setText("비밀번호가 일치하지 않습니다")
+			mb.setIcon(QMessageBox.Warning)
+			mb.setWindowTitle("솔개톡 회원가입")
+			mb.exec_()
+		# 입력받은 경우 회원가입을 시도한다
+		else:
+			#MariaDB에 연결
+			db = pymysql.connect(host=self.__host, port=3306, user="Solgae", passwd="gntech2152", db="SolgaeTalk", charset="utf8", autocommit=True)
+			cursor = db.cursor()
+			# 존재하는 아이디, 닉네임인지 확인한다
+			cursor.execute("SELECT COUNT(*) FROM Accounts WHERE userID='" + self.__txtID.text().strip() + "' OR nickname='" + self.__txtNickname.text().strip() + "'")
+			result = cursor.fetchone()
+			
+			# 존재하는 아이디, 닉네임이 있다면 오류메시지를 출력
+			if result[0] != 0:
+				mb = QMessageBox()
+				mb.setText("이미 존재하는 아이디 또는 닉네임 입니다")
+				mb.setIcon(QMessageBox.Warning)
+				mb.setWindowTitle("솔개톡 회원가입")
+				mb.exec_()
+			# 없는 경우 회원가입을 시도한다
+			else :
+				# 입력받은 비밀번호를 암호화한다
+				hashSHA = hashlib.sha256()
+				hashSHA.update(self.__txtPW.text().strip().encode())
+				hexSHA256 = hashSHA.hexdigest()
+
+				# 아이디, 암호화한 비밀번호, 닉네임을 DB에 저장한다
+				cursor.execute("INSERT INTO Accounts(userID, userPW, Nickname) VALUES('" + self.__txtID.text().strip() + "', '" + hexSHA256  + "', '" + self.__txtNickname.text().strip() + "')")
+
+				# 회원가입이 완료된경우 메시지와 함께 입력박스를 초기화 한다
+				mb = QMessageBox()
+				mb.setText("회원가입이 완료되었습니다")
+				mb.setIcon(QMessageBox.Information)
+				mb.setWindowTitle("솔개톡 회원가입")
+				mb.exec_()
+
+				self.__txtID.setText("")
+				self.__txtPW.setText("")
+				self.__txtPW_Confirm.setText("")
+				self.__txtNickname.setText("")
 
 # 클라이언트 GUI 어플리케이션 클래스
 class ClientApp:
@@ -88,9 +220,11 @@ class ClientApp:
 	__clientSocket : Client.ClientSocket	# 클라이언트 소켓 클래스 객체
 	__lock : threading.Lock
 	__cursor : QTextCursor	# 채팅로그의 텍스트 커서
+	__nickname : str	# 사용자의 닉네임
 	
-	# 생성자 (인자값으로 호스트명과 포트를 전달받는다)
-	def __init__(self, host : str, port : int):
+	# 생성자 (인자값으로 호스트명, 포트와 닉네임을 전달받는다)
+	def __init__(self, host : str, port : int, nickname : str):
+		self.__nickname = nickname
 		self.__lock = threading.Lock()
 	
 		self.__frame = QFrame()	# 메인 프레임을 생성한다
@@ -135,9 +269,9 @@ class ClientApp:
 			processThread = threading.Thread(target=self.__clientSocket.ProcessMessage, args=([self.__cursor]))
 			processThread.daemon = True
 			processThread.start()
-			self.__clientSocket.SendMessage(1996, [self.__msgEdit])
+			self.__clientSocket.SendMessage(1996, [self.__msgEdit], self.__nickname)
 			
 	# 전송버튼 또는 입력창에서 엔터를 누른경우 실행되는 함수
 	def SendMessage(self):
 		if not self.__msgEdit.text().strip() == "":
-			self.__clientSocket.SendMessage(5002, [self.__msgEdit])
+			self.__clientSocket.SendMessage(5002, [self.__msgEdit], self.__nickname)
