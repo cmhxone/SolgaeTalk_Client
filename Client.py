@@ -73,6 +73,13 @@ class ClientSocket:
 				cursor.beginEditBlock()
 				cursor.insertHtml("<strong><message style='color:#707070'>[솔개톡] <id style='color:#FF0000'>" + message[1].decode().strip().replace("\0", "") + "</id>" + " 님이 솔개톡에 입장하셨습니다</message></strong><br>")
 				cursor.endEditBlock()
+			
+			# 접속 종료 플래그를 전달 받은 경우 접속 종료 메시지를 출력한다
+			elif message[0] == 2015:
+				cursor.movePosition(cursor.End)
+				cursor.beginEditBlock()
+				cursor.insertHtml("<strong><message style='color:#707070'>[솔개톡] <id style='color:#FF0000'>" + message[1].decode().strip().replace("\0", "") + "</id>" + " 님이 솔개톡에서 퇴장하셨습니다</strong>")
+				cursor.endEditBlock()
 		
 	# 소켓 서버에 메시지를 전달하는 함수
 	def SendMessage(self, flag : int, msgEdit : QLineEdit, nickname : str):

@@ -8,106 +8,6 @@ import Client	# 소켓 클라이언트 모듈 임포트
 # Qt 라이브러리 내의 필요 모듈들을 임포트한다
 from PySide2.QtWidgets import QApplication, QFrame, QPlainTextEdit, QLineEdit, QPushButton, QMessageBox, QDialog, QVBoxLayout
 from PySide2.QtGui import QTextCursor
-
-# 클라이언트 로그인 GUI 폼
-class LoginDialog(QDialog):
-	__txtID : QLineEdit	# 아이디 입력 창
-	__txtPW : QLineEdit	# 비밀번호 입력 창
-	__btnLogin : QPushButton	# 로그인 버튼
-	__btnRegist : QPushButton	# 회원가입 버튼
-	__layout : QVBoxLayout	# 다이얼로그 레이아웃
-	__host : str	# 호스트 주소
-	__port : int	# 포트번호
-	__app : QApplication	# 어플리케이션
-
-	# 다이얼로그 생성자
-	def __init__(self, host : str, port : int, parent=None):
-		self.__host = host
-		self.__port = port
-	
-		self.__app = QApplication(sys.argv)
-		# 다이얼로그 초기화
-		super(LoginDialog, self).__init__(parent)
-		self.setWindowTitle("솔개톡 로그인")
-		self.setFixedSize(200, 130)
-		
-		# 다이얼로그에 객체 생성
-		self.__layout = QVBoxLayout()
-		self.__txtID = QLineEdit()
-		self.__txtPW = QLineEdit()
-		self.__btnLogin = QPushButton("로그인")
-		self.__btnRegist = QPushButton("회원가입")
-		self.__btnLogin.clicked.connect(lambda: self.ProcessLogin())
-		self.__btnRegist.clicked.connect(lambda: self.ShowRegister())
-		
-		# 다이얼로그 객체의 속성을 지정한다
-		self.__txtID.setPlaceholderText("아이디")
-		self.__txtPW.setPlaceholderText("비밀번호")
-		self.__txtPW.setEchoMode(QLineEdit.Password)
-		
-		# 다이얼로그 메인프레임에 에딧 연결
-		self.__layout.addWidget(self.__txtID)
-		self.__layout.addWidget(self.__txtPW)
-		self.__layout.addWidget(self.__btnLogin)
-		self.__layout.addWidget(self.__btnRegist)
-		self.setLayout(self.__layout)
-		
-		# 디이얼로그를 보여준다
-		self.show()
-		self.__app.exec_()
-
-	# 로그인 버튼을 누른 경우 호출되는 함수
-	def ProcessLogin(self):
-		#MariaDB와 연동하여 ID/PW 정보를 가져와 로그인을 시도한다
-		self.__txtID.setReadOnly(True)
-		self.__txtPW.setReadOnly(True)
-		
-		# MySQL(MariaDB) 서버에 접속한다
-		db = pymysql.connect(host=self.__host, port=3306, user="Solgae", passwd="gntech2152", db="SolgaeTalk", charset="utf8", autocommit=True)
-		cursor = db.cursor()
-		
-		# 입력받은 비밀번호를 암호화한다
-		hashSHA = hashlib.sha256()
-		hashSHA.update(self.__txtPW.text().strip().encode())
-		hexSHA256 = hashSHA.hexdigest()
-		
-		# 입력받은 아이디, 암호화한 비밀번호와 동일한 레코드를 검색한다
-		cursor.execute("SELECT COUNT(*) FROM Accounts WHERE userID='" + self.__txtID.text().strip() + "' AND userPW='" + hexSHA256 + "'")
-		result = cursor.fetchone()
-		
-		# 로그인 정보가 존재하는 경우 어플리케이션을 실행한다
-		if result[0] == 1:
-			cursor.execute("SELECT nickname FROM Accounts WHERE userID='" + self.__txtID.text().strip() + "' AND userPW='" + hexSHA256 + "'")
-			result = cursor.fetchone()
-
-			clientApp = ClientApp(self.__host, self.__port, result[0])
-			self.hide()
-		else :
-			mb = QMessageBox()
-			mb.setText("일치하는 계정이 없습니다")
-			mb.setIcon(QMessageBox.Warning)
-			mb.setWindowTitle("솔개톡 로그인")
-			mb.exec_()
-			self.__txtID.setReadOnly(False)
-			self.__txtPW.setReadOnly(False)
-	
-	# 회원가입 버튼을 누른 경우 호출되는 함수
-	def ShowRegister(self):
-		# 회원가입 다이얼로그를 실행중엔 버튼 및 텍스트 에디터 사용을 막는다
-		self.__txtID.setReadOnly(True)
-		self.__txtPW.setReadOnly(True)
-		self.__btnLogin.setEnabled(False)
-		self.__btnRegist.setEnabled(False)
-		
-		# 회원가입 다이얼로그 생성
-		registDialog = RegistDialog(self, self.__host)
-		registDialog.exec_()
-		
-		# 다이얼로그가 닫힌 경우 버튼 및 텍스트 사용을 재개한다
-		self.__txtID.setReadOnly(False)
-		self.__txtPW.setReadOnly(False)
-		self.__btnLogin.setEnabled(True)
-		self.__btnRegist.setEnabled(True)
 		
 # 회원가입 GUI 어플리케이션 클래스
 class RegistDialog(QDialog):
@@ -275,3 +175,111 @@ class ClientApp:
 	def SendMessage(self):
 		if not self.__msgEdit.text().strip() == "":
 			self.__clientSocket.SendMessage(5002, [self.__msgEdit], self.__nickname)
+			
+	# 종료 되는 경우 실행되는 함수
+	def QuitMessage(self):
+		self.__clientSocket.SendMessage(2015, [self.__msgEdit], self.__nickname)
+
+# 클라이언트 로그인 GUI 폼
+class LoginDialog(QDialog):
+	__txtID : QLineEdit	# 아이디 입력 창
+	__txtPW : QLineEdit	# 비밀번호 입력 창
+	__btnLogin : QPushButton	# 로그인 버튼
+	__btnRegist : QPushButton	# 회원가입 버튼
+	__layout : QVBoxLayout	# 다이얼로그 레이아웃
+	__host : str	# 호스트 주소
+	__port : int	# 포트번호
+	__app : QApplication	# 어플리케이션
+	__clientApp : ClientApp # 클라이언트 어플리케이션
+
+	# 다이얼로그 생성자
+	def __init__(self, host : str, port : int, parent=None):
+		self.__host = host
+		self.__port = port
+	
+		self.__app = QApplication(sys.argv)
+		# 다이얼로그 초기화
+		super(LoginDialog, self).__init__(parent)
+		self.setWindowTitle("솔개톡 로그인")
+		self.setFixedSize(200, 130)
+		
+		# 다이얼로그에 객체 생성
+		self.__layout = QVBoxLayout()
+		self.__txtID = QLineEdit()
+		self.__txtPW = QLineEdit()
+		self.__btnLogin = QPushButton("로그인")
+		self.__btnRegist = QPushButton("회원가입")
+		self.__btnLogin.clicked.connect(lambda: self.ProcessLogin())
+		self.__btnRegist.clicked.connect(lambda: self.ShowRegister())
+		
+		# 다이얼로그 객체의 속성을 지정한다
+		self.__txtID.setPlaceholderText("아이디")
+		self.__txtPW.setPlaceholderText("비밀번호")
+		self.__txtPW.setEchoMode(QLineEdit.Password)
+		
+		# 다이얼로그 메인프레임에 에딧 연결
+		self.__layout.addWidget(self.__txtID)
+		self.__layout.addWidget(self.__txtPW)
+		self.__layout.addWidget(self.__btnLogin)
+		self.__layout.addWidget(self.__btnRegist)
+		self.setLayout(self.__layout)
+		
+		# 디이얼로그를 보여준다
+		self.show()
+		self.__app.exec_()
+		
+		# 실행이 종료 된 후 발생
+		self.__clientApp.QuitMessage()
+
+	# 로그인 버튼을 누른 경우 호출되는 함수
+	def ProcessLogin(self):
+		#MariaDB와 연동하여 ID/PW 정보를 가져와 로그인을 시도한다
+		self.__txtID.setReadOnly(True)
+		self.__txtPW.setReadOnly(True)
+		
+		# MySQL(MariaDB) 서버에 접속한다
+		db = pymysql.connect(host=self.__host, port=3306, user="Solgae", passwd="gntech2152", db="SolgaeTalk", charset="utf8", autocommit=True)
+		cursor = db.cursor()
+		
+		# 입력받은 비밀번호를 암호화한다
+		hashSHA = hashlib.sha256()
+		hashSHA.update(self.__txtPW.text().strip().encode())
+		hexSHA256 = hashSHA.hexdigest()
+		
+		# 입력받은 아이디, 암호화한 비밀번호와 동일한 레코드를 검색한다
+		cursor.execute("SELECT COUNT(*) FROM Accounts WHERE userID='" + self.__txtID.text().strip() + "' AND userPW='" + hexSHA256 + "'")
+		result = cursor.fetchone()
+		
+		# 로그인 정보가 존재하는 경우 어플리케이션을 실행한다
+		if result[0] == 1:
+			cursor.execute("SELECT nickname FROM Accounts WHERE userID='" + self.__txtID.text().strip() + "' AND userPW='" + hexSHA256 + "'")
+			result = cursor.fetchone()
+
+			self.__clientApp = ClientApp(self.__host, self.__port, result[0])
+			self.hide()
+		else :
+			mb = QMessageBox()
+			mb.setText("일치하는 계정이 없습니다")
+			mb.setIcon(QMessageBox.Warning)
+			mb.setWindowTitle("솔개톡 로그인")
+			mb.exec_()
+			self.__txtID.setReadOnly(False)
+			self.__txtPW.setReadOnly(False)
+	
+	# 회원가입 버튼을 누른 경우 호출되는 함수
+	def ShowRegister(self):
+		# 회원가입 다이얼로그를 실행중엔 버튼 및 텍스트 에디터 사용을 막는다
+		self.__txtID.setReadOnly(True)
+		self.__txtPW.setReadOnly(True)
+		self.__btnLogin.setEnabled(False)
+		self.__btnRegist.setEnabled(False)
+		
+		# 회원가입 다이얼로그 생성
+		registDialog = RegistDialog(self, self.__host)
+		registDialog.exec_()
+		
+		# 다이얼로그가 닫힌 경우 버튼 및 텍스트 사용을 재개한다
+		self.__txtID.setReadOnly(False)
+		self.__txtPW.setReadOnly(False)
+		self.__btnLogin.setEnabled(True)
+		self.__btnRegist.setEnabled(True)
