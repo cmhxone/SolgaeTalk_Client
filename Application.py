@@ -6,7 +6,7 @@ import hashlib	# 해싱 모듈 임포트
 import Client	# 소켓 클라이언트 모듈 임포트
 
 # Qt 라이브러리 내의 필요 모듈들을 임포트한다
-from PySide2.QtWidgets import QApplication, QFrame, QPlainTextEdit, QLineEdit, QPushButton, QMessageBox, QDialog, QVBoxLayout
+from PySide2.QtWidgets import QApplication, QFrame, QPlainTextEdit, QLineEdit, QPushButton, QMessageBox, QDialog, QVBoxLayout, QLabel, QListWidget
 from PySide2.QtGui import QTextCursor
 		
 # 회원가입 GUI 어플리케이션 클래스
@@ -160,6 +160,7 @@ class ClientApp:
 	__lock : threading.Lock
 	__cursor : QTextCursor	# 채팅로그의 텍스트 커서
 	__nickname : str	# 사용자의 닉네임
+	__listUser : QListWidget	# 접속한 유저를 보여주는 리스트위젯
 	
 	# 생성자 (인자값으로 호스트명, 포트와 닉네임을 전달받는다)
 	def __init__(self, host : str, port : int, nickname : str):
@@ -174,11 +175,15 @@ class ClientApp:
 		self.__msgEdit = QLineEdit()	# 메시지 입력창을 생성한다
 		self.__btnSend = QPushButton("전송")	# 메시지 전송 버튼을 생성한다
 		self.__cursor = QTextCursor(self.__chatlog.document())	# 채팅로그 커서를 생성한다
+		self.__listUser = QListWidget()	# 접속자 목록 리스트위젯을 생성한다
+		listLabel = QLabel("접속자 목록")	# 목록 리스트 위에 보여질 레이블
 		
 		# 프레임과 자식객체의 연동
 		self.__chatlog.setParent(self.__frame)
 		self.__msgEdit.setParent(self.__frame)
 		self.__btnSend.setParent(self.__frame)
+		self.__listUser.setParent(self.__frame)
+		listLabel.setParent(self.__frame)
 		
 		# 자식객체들의 속성 지정
 		self.__chatlog.setFont("돋움")	# 채팅로그의 폰트 조정
@@ -188,6 +193,9 @@ class ClientApp:
 		self.__msgEdit.move(10, 260)	# 메시지 입력창 위치 조정
 		self.__msgEdit.setFixedSize(405, 21)	# 메시지 입력창 크기 조정
 		self.__btnSend.move(415, 259)	# 메시지 전송 버튼 위치 조정
+		self.__listUser.move(500, 25)	# 리스트 위젯의 위치 조정
+		self.__listUser.setFixedSize(130, 255)	# 리스트 위젯의 크기 조정
+		listLabel.move(500, 10)	# 목록 리스트 위에 레이블을 위치시킨다
 		
 		# 이벤트 발생 시 호출할 함수의 지정
 		self.__msgEdit.returnPressed.connect(lambda: self.SendMessage())
@@ -195,7 +203,7 @@ class ClientApp:
 		
 		self.InitSocket(host, port)	# 클라이언트 소켓 클래스를 초기화한다
 		
-		self.__frame.setFixedSize(500, 480)	# 프레임의 크기를 지정한다
+		self.__frame.setFixedSize(640, 480)	# 프레임의 크기를 지정한다
 		self.__frame.show()	# 메인 프레임을 보여준다
 	
 	# 소켓을 초기화, 접속 하는 함수
@@ -206,7 +214,7 @@ class ClientApp:
 			exit(-1)
 		# 접속에 성공한 경우 메시지 처리 함수를 별도의 스레드로 처리해준 뒤  접속 플래그를 담은 메시지를 전송
 		else:
-			processThread = threading.Thread(target=self.__clientSocket.ProcessMessage, args=([self.__cursor]))
+			processThread = threading.Thread(target=self.__clientSocket.ProcessMessage, args=([self.__cursor], [self.__listUser]))
 			processThread.daemon = True
 			processThread.start()
 			self.__clientSocket.SendMessage(1996, [self.__msgEdit], self.__nickname)
@@ -295,14 +303,32 @@ class LoginDialog(QDialog):
 		
 		# 로그인 정보가 존재하는 경우 어플리케이션을 실행한다
 		if result[0] == 1:
-			cursor.execute("SELECT nickname FROM Accounts WHERE userID='" + self.__txtID.text().strip() + "' AND userPW='" + hexSHA256 + "'")
+			cursor.execute("SELECT COUNT(*) FROM Accounts WHERE userID='" + self.__txtID.text().strip() + "' AND userPW='" + hexSHA256 + "' AND online=False")
 			result = cursor.fetchone()
+			
+			# 이미 로그인 되어 있지 않은 경우 어플리케이션을 실행한다
+			if result[0] == 1:
+				cursor.execute("SELECT nickname FROM Accounts WHERE userID='" + self.__txtID.text().strip() + "' AND userPW='" + hexSHA256 + "'")
+				result = cursor.fetchone()
+				cursor.execute("UPDATE Accounts SET online=True WHERE userID='" + self.__txtID.text().strip() + "' AND userPW='" + hexSHA256 + "'")
 
-			self.__clientApp = ClientApp(self.__host, self.__port, result[0])
-			self.hide()
+				self.__clientApp = ClientApp(self.__host, self.__port, result[0])
+				self.hide()
+			
+			# 이미 로그인 되어 있는 경우 오류메시지를 출력한다
+			else:	
+				mb = QMessageBox()
+				mb.setText("이미 접속중인 계정입니다")
+				mb.setIcon(QMessageBox.Warning)
+				mb.setWindowTitle("솔개톡 로그인")
+				mb.exec_()
+				self.__txtID.setReadOnly(False)
+				self.__txtPW.setReadOnly(False)
+			
+		# 로그인 정보가 존재하지 않는 경우 오류메시지를 출력한다
 		else :
 			mb = QMessageBox()
-			mb.setText("일치하는 계정이 없습니다")
+			mb.setText("아이디 또는 패스워드가 일치하지 않습니다")
 			mb.setIcon(QMessageBox.Warning)
 			mb.setWindowTitle("솔개톡 로그인")
 			mb.exec_()
