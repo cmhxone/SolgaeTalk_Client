@@ -82,14 +82,14 @@ class ClientSocket:
 				# MySQL에 접속해 접속 중인 사용자들의 정보를 가져와 리스트에 업데이트 시킨다
 				db = pymysql.connect(host=self.__host, port=3306, user="Solgae", passwd="gntech2152", db="SolgaeTalk", charset="utf8", autocommit=True)
 				cur = db.cursor()
-				cur.execute("SELECT nickname FROM Accounts WHERE online=True")
+				cur.execute("SELECT nickname FROM Accounts WHERE online=True ORDER BY id DESC")
 				rows = cur.fetchall()
 				
 				# 리스트 초기화 후 접속자 명단만 읽어들인다
 				try:
 					list[0].clear()
 					for element in rows:
-						list[0].addItem(element[0])
+						list[0].insertItem(0, element[0])
 				except:
 					pass
 			
@@ -107,14 +107,14 @@ class ClientSocket:
 				# MySQL에 접속해 접속 중인 사용자들의 정보를 가져와 리스트에 업데이트 시킨다
 				db = pymysql.connect(host=self.__host, port=3306, user="Solgae", passwd="gntech2152", db="SolgaeTalk", charset="utf8", autocommit=True)
 				cur = db.cursor()
-				cur.execute("SELECT nickname FROM Accounts WHERE online=True")
+				cur.execute("SELECT nickname FROM Accounts WHERE online=True ORDER BY id DESC")
 				rows = cur.fetchall()
 				
 				# 리스트 초기화 후 접속자 명단만 읽어들인다
 				try:
 					list[0].clear()
 					for element in rows:
-						list[0].addItem(element[0])
+						list[0].insertItem(0, element[0])
 				except:
 					pass
 		
