@@ -51,7 +51,7 @@ class ClientSocket:
 			return False
 	
 	# 소켓 서버에서 정보를 받아오는 함수
-	def ProcessMessage(self, cursor : QTextCursor, list : QListWidget):
+	def ProcessMessage(self, cursor : QTextCursor, chatlog : QPlainTextEdit, list : QListWidget):
 		while True:	# 실행상태라면 계속 반복한다
 			# 소켓에서 정보를 읽어온다
 			data = self.__socket.recv(1024)	# 사이즈만큼의 데이터를 받아온 뒤 data 변수에 전달
@@ -67,13 +67,16 @@ class ClientSocket:
 				cursor[0].movePosition(cursor[0].End)
 				# HTML 태그를 이용해 프로그램 오류 유도를 방지하기 위해 메시지는 일반 텍스트로 출력한다
 				cursor[0].insertText(message[2].decode().strip().replace("\0", "") + "\n")
+				chatlog[0].moveCursor(chatlog[0].textCursor().End)
 				cursor[0].endEditBlock()
+				
 				
 			# 접속 플래그를 전달 받은 경우 환영 메시지를 출력한다
 			elif message[0] == 1996:
 				cursor[0].movePosition(cursor[0].End)
 				cursor[0].beginEditBlock()
 				cursor[0].insertHtml("<strong><message style='color:#707070'>[솔개톡] <id style='color:#FF0000'>" + message[1].decode().strip().replace("\0", "") + "</id>" + " 님이 솔개톡에 입장하셨습니다</message></strong><br>")
+				chatlog[0].moveCursor(chatlog[0].textCursor().End)
 				cursor[0].endEditBlock()
 				
 				# MySQL에 접속해 접속 중인 사용자들의 정보를 가져와 리스트에 업데이트 시킨다
@@ -83,15 +86,22 @@ class ClientSocket:
 				rows = cur.fetchall()
 				
 				# 리스트 초기화 후 접속자 명단만 읽어들인다
-				list[0].clear()
-				for element in rows:
-					list[0].addItem(element[0])
+				try:
+					list[0].clear()
+					for element in rows:
+						list[0].addItem(element[0])
+				except:
+					pass
 			
 			# 접속 종료 플래그를 전달 받은 경우 접속 종료 메시지를 출력한다
 			elif message[0] == 2015:
 				cursor[0].movePosition(cursor[0].End)
 				cursor[0].beginEditBlock()
 				cursor[0].insertHtml("<strong><message style='color:#707070'>[솔개톡] <id style='color:#FF0000'>" + message[1].decode().strip().replace("\0", "") + "</id>" + " 님이 솔개톡에서 퇴장하셨습니다</strong><br>")
+				try:
+					chatlog[0].moveCursor(chatlog[0].textCursor().End)
+				except:
+					pass
 				cursor[0].endEditBlock()
 				
 				# MySQL에 접속해 접속 중인 사용자들의 정보를 가져와 리스트에 업데이트 시킨다
@@ -101,9 +111,12 @@ class ClientSocket:
 				rows = cur.fetchall()
 				
 				# 리스트 초기화 후 접속자 명단만 읽어들인다
-				list[0].clear()
-				for element in rows:
-					list[0].addItem(element[0])
+				try:
+					list[0].clear()
+					for element in rows:
+						list[0].addItem(element[0])
+				except:
+					pass
 		
 	# 소켓 서버에 메시지를 전달하는 함수
 	def SendMessage(self, flag : int, msgEdit : QLineEdit, nickname : str):

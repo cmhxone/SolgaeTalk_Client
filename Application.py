@@ -214,7 +214,7 @@ class ClientApp:
 			exit(-1)
 		# 접속에 성공한 경우 메시지 처리 함수를 별도의 스레드로 처리해준 뒤  접속 플래그를 담은 메시지를 전송
 		else:
-			processThread = threading.Thread(target=self.__clientSocket.ProcessMessage, args=([self.__cursor], [self.__listUser]))
+			processThread = threading.Thread(target=self.__clientSocket.ProcessMessage, args=([self.__cursor], [self.__chatlog], [self.__listUser]))
 			processThread.daemon = True
 			processThread.start()
 			self.__clientSocket.SendMessage(1996, [self.__msgEdit], self.__nickname)
