@@ -75,7 +75,9 @@ class ClientSocket:
 			elif message[0] == 1996:
 				cursor[0].movePosition(cursor[0].End)
 				cursor[0].beginEditBlock()
-				cursor[0].insertHtml("<strong><message style='color:#707070'>[솔개톡] <id style='color:#FF0000'>" + message[1].decode().strip().replace("\0", "") + "</id>" + " 님이 솔개톡에 입장하셨습니다</message></strong><br>")
+				cursor[0].insertHtml("<strong><message style='color:#707070'>[솔개톡] <id style='color:#FF0000'>" + message[1].decode().strip().replace("\0", "") + "</id>" + " 님이 솔개톡에 입장하셨습니다</message></strong>")
+				cursor[0].movePosition(cursor[0].End)
+				cursor[0].insertText("\n")
 				chatlog[0].moveCursor(chatlog[0].textCursor().End)
 				cursor[0].endEditBlock()
 				
@@ -97,11 +99,10 @@ class ClientSocket:
 			elif message[0] == 2015:
 				cursor[0].movePosition(cursor[0].End)
 				cursor[0].beginEditBlock()
-				cursor[0].insertHtml("<strong><message style='color:#707070'>[솔개톡] <id style='color:#FF0000'>" + message[1].decode().strip().replace("\0", "") + "</id>" + " 님이 솔개톡에서 퇴장하셨습니다</strong><br>")
-				try:
-					chatlog[0].moveCursor(chatlog[0].textCursor().End)
-				except:
-					pass
+				cursor[0].insertHtml("<strong><message style='color:#707070'>[솔개톡] <id style='color:#FF0000'>" + message[1].decode().strip().replace("\0", "") + "</id>" + " 님이 솔개톡에서 퇴장하셨습니다</strong>")
+				cursor[0].movePosition(cursor[0].End)
+				cursor[0].insertText("\n")
+				chatlog[0].moveCursor(chatlog[0].textCursor().End)
 				cursor[0].endEditBlock()
 				
 				# MySQL에 접속해 접속 중인 사용자들의 정보를 가져와 리스트에 업데이트 시킨다
