@@ -6,8 +6,9 @@ import hashlib	# 해싱 모듈 임포트
 import Client	# 소켓 클라이언트 모듈 임포트
 
 # Qt 라이브러리 내의 필요 모듈들을 임포트한다
-from PySide2.QtWidgets import QApplication, QFrame, QPlainTextEdit, QLineEdit, QPushButton, QMessageBox, QDialog, QVBoxLayout, QLabel, QListWidget
-from PySide2.QtGui import QTextCursor
+from PySide2.QtWidgets import *
+from PySide2.QtGui import *
+from PySide2.QtCore import *
 		
 # 회원가입 GUI 어플리케이션 클래스
 class RegistDialog(QDialog):
@@ -18,6 +19,10 @@ class RegistDialog(QDialog):
 	__txtPW_Confirm : QLineEdit	# 비밀번호 입력 확인 객체
 	__txtNickname : QLineEdit	# 닉네임 입력 객체
 	__btnRegist : QLineEdit	# 회원가입 시도 버튼 객체
+	__lbNickname : QLabel	# 닉네임의 색상을 미리보여주는 레이블
+	__sldRed : QSlider	# 닉네임의 레드값을 지정하는 슬라이더
+	__sldGreen : QSlider	# 닉네임의 그린값을 지정하는 슬라이더
+	__sldBlue : QSlider	# 닉네임의 블루값을 지정하는 슬라이더
 	
 	# 생성자
 	def __init__(self, parent, host):
@@ -27,7 +32,7 @@ class RegistDialog(QDialog):
 		# 다이얼로그 초기화
 		super(RegistDialog, self).__init__(parent)
 		self.setWindowTitle("솔개톡 회원가입")
-		self.setFixedSize(200, 150)
+		self.setFixedSize(200, 240)
 		
 		# 다이얼로그 내의 객체 초기화
 		self.__layout = QVBoxLayout()
@@ -36,12 +41,20 @@ class RegistDialog(QDialog):
 		self.__txtPW_Confirm = QLineEdit()
 		self.__txtNickname = QLineEdit()
 		self.__btnRegist = QPushButton("회원가입")
+		self.__lbNickname = QLabel("닉네임 색상")
+		self.__sldRed = QSlider(Qt.Horizontal)
+		self.__sldGreen = QSlider(Qt.Horizontal)
+		self.__sldBlue = QSlider(Qt.Horizontal)
 		
 		# 레이아웃에 객체 지정
 		self.__layout.addWidget(self.__txtID)
 		self.__layout.addWidget(self.__txtPW)
 		self.__layout.addWidget(self.__txtPW_Confirm)
 		self.__layout.addWidget(self.__txtNickname)
+		self.__layout.addWidget(self.__lbNickname)
+		self.__layout.addWidget(self.__sldRed)
+		self.__layout.addWidget(self.__sldGreen)
+		self.__layout.addWidget(self.__sldBlue)
 		self.__layout.addWidget(self.__btnRegist)
 		
 		# 객체 속성 지정
@@ -54,13 +67,30 @@ class RegistDialog(QDialog):
 		self.__txtPW.setEchoMode(QLineEdit.Password)
 		self.__txtPW_Confirm.setEchoMode(QLineEdit.Password)
 		self.__btnRegist.clicked.connect(lambda: self.ProcessRegist())
+		self.__lbNickname.setAlignment(Qt.AlignCenter)
+		self.__lbNickname.setStyleSheet("background-color: #FFFFFF; font-weight: bold")
+		self.__sldRed.setMinimum(0)
+		self.__sldRed.setMaximum(255)
+		self.__sldRed.setTickPosition(QSlider.TicksBelow)
+		self.__sldRed.setTickInterval(8)
+		self.__sldRed.valueChanged.connect(lambda: self.ColorChanged())
+		self.__sldGreen.setMinimum(0)
+		self.__sldGreen.setMaximum(255)
+		self.__sldGreen.setTickPosition(QSlider.TicksBelow)
+		self.__sldGreen.setTickInterval(8)
+		self.__sldGreen.valueChanged.connect(lambda: self.ColorChanged())
+		self.__sldBlue.setMinimum(0)
+		self.__sldBlue.setMaximum(255)
+		self.__sldBlue.setTickPosition(QSlider.TicksBelow)
+		self.__sldBlue.setTickInterval(8)
+		self.__sldBlue.valueChanged.connect(lambda: self.ColorChanged())
 		
 		# 다이얼로그를 출력한다
 		self.setLayout(self.__layout)
 		self.show()
 		
 	# 회원가입 버튼을 누른 경우 호출되는 함수
-	def ProcessRegist(self):
+	def ProcessRegist(self):		
 		# 아무것도 입력되지 않은 경우 오류메시지 출력
 		if self.__txtID.text().strip() == "" or self.__txtPW.text().strip() == "" or self.__txtPW_Confirm.text().strip() == "" or self.__txtNickname.text().strip() == "":
 			mb = QMessageBox()
@@ -136,7 +166,7 @@ class RegistDialog(QDialog):
 					hexSHA256 = hashSHA.hexdigest()
 
 					# 아이디, 암호화한 비밀번호, 닉네임을 DB에 저장한다
-					cursor.execute("INSERT INTO Accounts(userID, userPW, Nickname) VALUES('" + self.__txtID.text().strip() + "', '" + hexSHA256  + "', '" + self.__txtNickname.text().strip() + "')")
+					cursor.execute("INSERT INTO Accounts(userID, userPW, Nickname, red, green, blue) VALUES('" + self.__txtID.text().strip() + "', '" + hexSHA256  + "', '" + self.__txtNickname.text().strip() + "', " + str(self.__sldRed.value()) + ", " + str(self.__sldGreen.value()) + ", " + str(self.__sldBlue.value()) + ")")
 
 					# 회원가입이 완료된경우 메시지와 함께 입력박스를 초기화 한다
 					mb = QMessageBox()
@@ -149,6 +179,13 @@ class RegistDialog(QDialog):
 					self.__txtPW.setText("")
 					self.__txtPW_Confirm.setText("")
 					self.__txtNickname.setText("")
+					
+	# 닉네임 컬러 슬라이더가 이동 될 때 호출되는 함수
+	def ColorChanged(self):
+		r = str(self.__sldRed.value())
+		g = str(self.__sldGreen.value())
+		b = str(self.__sldBlue.value())
+		self.__lbNickname.setStyleSheet("background-color: #FFFFFF; font-weight: bold; color: rgb(" + r + "," + g + "," + b + ")")
 
 # 클라이언트 GUI 어플리케이션 클래스
 class ClientApp:
@@ -161,10 +198,17 @@ class ClientApp:
 	__cursor : QTextCursor	# 채팅로그의 텍스트 커서
 	__nickname : str	# 사용자의 닉네임
 	__listUser : QListWidget	# 접속한 유저를 보여주는 리스트위젯
+	# 사용자의 닉네임 색상값
+	__red : int
+	__green : int
+	__blue : int
 	
-	# 생성자 (인자값으로 호스트명, 포트와 닉네임을 전달받는다)
-	def __init__(self, host : str, port : int, nickname : str):
+	# 생성자 (인자값으로 호스트명, 포트, 닉네임, 컬러값을 전달받는다)
+	def __init__(self, host : str, port : int, nickname : str, r : int, g : int, b : int):
 		self.__nickname = nickname
+		self.__red = r
+		self.__green = g
+		self.__blue = b
 		self.__lock = threading.Lock()
 	
 		self.__frame = QFrame()	# 메인 프레임을 생성한다
@@ -217,16 +261,16 @@ class ClientApp:
 			processThread = threading.Thread(target=self.__clientSocket.ProcessMessage, args=([self.__cursor], [self.__chatlog], [self.__listUser]))
 			processThread.daemon = True
 			processThread.start()
-			self.__clientSocket.SendMessage(1996, [self.__msgEdit], self.__nickname)
+			self.__clientSocket.SendMessage(1996, [self.__msgEdit], self.__nickname, self.__red, self.__green, self.__blue)
 			
 	# 전송버튼 또는 입력창에서 엔터를 누른경우 실행되는 함수
 	def SendMessage(self):
 		if not self.__msgEdit.text().strip() == "":
-			self.__clientSocket.SendMessage(5002, [self.__msgEdit], self.__nickname)
+			self.__clientSocket.SendMessage(5002, [self.__msgEdit], self.__nickname, self.__red, self.__green, self.__blue)
 			
 	# 종료 되는 경우 실행되는 함수
 	def QuitMessage(self):
-		self.__clientSocket.SendMessage(2015, [self.__msgEdit], self.__nickname)
+		self.__clientSocket.SendMessage(2015, [self.__msgEdit], self.__nickname, self.__red, self.__green, self.__blue)
 
 # 클라이언트 로그인 GUI 폼
 class LoginDialog(QDialog):
@@ -308,11 +352,11 @@ class LoginDialog(QDialog):
 			
 			# 이미 로그인 되어 있지 않은 경우 어플리케이션을 실행한다
 			if result[0] == 1:
-				cursor.execute("SELECT nickname FROM Accounts WHERE userID='" + self.__txtID.text().strip() + "' AND userPW='" + hexSHA256 + "'")
+				cursor.execute("SELECT nickname, red, green, blue FROM Accounts WHERE userID='" + self.__txtID.text().strip() + "' AND userPW='" + hexSHA256 + "'")
 				result = cursor.fetchone()
 				cursor.execute("UPDATE Accounts SET online=True WHERE userID='" + self.__txtID.text().strip() + "' AND userPW='" + hexSHA256 + "'")
 
-				self.__clientApp = ClientApp(self.__host, self.__port, result[0])
+				self.__clientApp = ClientApp(self.__host, self.__port, result[0], result[1], result[2], result[3])
 				self.hide()
 			
 			# 이미 로그인 되어 있는 경우 오류메시지를 출력한다
