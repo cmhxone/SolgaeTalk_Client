@@ -3,6 +3,9 @@ import threading	# 스레드 모듈 임포트
 import struct # 구조체 모듈 임포트
 import pymysql	# MySQL 모듈 임포트
 
+# 소리 재생을 위한 모듈 임포트
+from playsound import playsound
+
 # Qt 라이브러리 내의 필요 모듈들을 임포트
 from PySide2.QtWidgets import QMessageBox, QPlainTextEdit, QLineEdit, QMessageBox, QListWidget
 from PySide2.QtGui import QTextCharFormat, QBrush, QColor, QTextCursor
@@ -59,7 +62,6 @@ class ClientSocket:
 			
 			# 메시지 수신 플래그를 전달 받은 경우 메시지를 출력한다
 			if message[0] == 5002:
-				# 텍스트 포맷을 지정해준다
 				cursor[0].movePosition(cursor[0].End)
 				cursor[0].beginEditBlock()
 				# TODO: 서버에서 아이디, 컬러값을 가져온 뒤 출력하게 한다
