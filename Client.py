@@ -3,6 +3,9 @@ import threading	# 스레드 모듈 임포트
 import struct # 구조체 모듈 임포트
 import pymysql	# MySQL 모듈 임포트
 
+# 알림음을 재생하기 위한 모듈 임포트
+from playsound import playsound
+
 # Qt 라이브러리 내의 필요 모듈들을 임포트
 from PySide2.QtWidgets import QMessageBox, QPlainTextEdit, QLineEdit, QMessageBox, QListWidget
 from PySide2.QtGui import QTextCharFormat, QBrush, QColor, QTextCursor
@@ -59,9 +62,13 @@ class ClientSocket:
 			
 			# 메시지 수신 플래그를 전달 받은 경우 메시지를 출력한다
 			if message[0] == 5002:
+				# 알림음 재생
+				wavThread = threading.Thread(target=lambda: playsound("Alert.wav"), args=())
+				wavThread.daemon = True
+				wavThread.start()
+				
 				cursor[0].movePosition(cursor[0].End)
 				cursor[0].beginEditBlock()
-				# TODO: 서버에서 아이디, 컬러값을 가져온 뒤 출력하게 한다
 				cursor[0].insertHtml("<id style='color:rgb(" + str(message[3]) + "," + str(message[4]) + "," + str(message[5]) + "); font-weight: bold'>[" + message[1].decode().strip().replace("\0", "") + "]</id> ")
 				cursor[0].movePosition(cursor[0].End)
 				# HTML 태그를 이용해 프로그램 오류 유도를 방지하기 위해 메시지는 일반 텍스트로 출력한다
@@ -72,6 +79,11 @@ class ClientSocket:
 				
 			# 접속 플래그를 전달 받은 경우 환영 메시지를 출력한다
 			elif message[0] == 1996:
+				# 알림음 재생
+				wavThread = threading.Thread(target=lambda: playsound("Hello.wav"), args=())
+				wavThread.daemon = True
+				wavThread.start()
+				
 				cursor[0].movePosition(cursor[0].End)
 				cursor[0].beginEditBlock()
 				cursor[0].insertHtml("<strong><message style='color:#707070'>[솔개톡] <id style='color:rgb(" + str(message[3]) + "," + str(message[4]) + "," + str(message[5]) + "); font-weight: bold'>" + message[1].decode().strip().replace("\0", "") + "</id>" + " 님이 솔개톡에 입장하셨습니다</message></strong>")
@@ -96,6 +108,11 @@ class ClientSocket:
 			
 			# 접속 종료 플래그를 전달 받은 경우 접속 종료 메시지를 출력한다
 			elif message[0] == 2015:
+				# 알림음 재생
+				wavThread = threading.Thread(target=lambda: playsound("Bye.wav"), args=())
+				wavThread.daemon = True
+				wavThread.start()
+			
 				cursor[0].movePosition(cursor[0].End)
 				cursor[0].beginEditBlock()
 				cursor[0].insertHtml("<strong><message style='color:#707070'>[솔개톡] <id style='color: rgb(" + str(message[3]) + "," + str(message[4]) + "," + str(message[5]) + "); font-weight: bold'>" + message[1].decode().strip().replace("\0", "") + "</id>" + " 님이 솔개톡에서 퇴장하셨습니다</strong>")
