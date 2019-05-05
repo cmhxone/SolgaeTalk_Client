@@ -8,6 +8,9 @@
 ## PyMysql 설치 방법
 - 명령 프롬프트에서 pip install PyMysql --user 입력하면 설치 완료
 
+## PlaySound 설치 방법
+- 명령 프롬프트에서 pip install playsound --user 입력하면 설치 완료
+
 ## 추가한 사항
 ### 2019-04-07
 - [x] 최초 접속 시 닉네임 설정 구현(X)
